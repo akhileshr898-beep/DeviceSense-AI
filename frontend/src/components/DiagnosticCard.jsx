@@ -1,5 +1,5 @@
 import React from "react";
-import { AlertCircle, AlertTriangle, Info, Check, ShieldCheck, ArrowRight, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, Info, Check, ArrowRight, X } from "lucide-react";
 
 export default function DiagnosticCard({ finding, onSelectAction, onDismiss }) {
   const isResolved = finding.status === "resolved";
@@ -144,3 +144,4 @@ export default function DiagnosticCard({ finding, onSelectAction, onDismiss }) {
     </div>
   );
 }
+

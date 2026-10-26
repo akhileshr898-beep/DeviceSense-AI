@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { FileText, Copy, Download, Check, Monitor, Cpu } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { FileText, Copy, Download, Check } from "lucide-react";
 import { api } from "../services/api";
 
 export default function Reports() {
@@ -7,11 +7,7 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    loadReport();
-  }, []);
-
-  const loadReport = async () => {
+  const loadReport = useCallback(async () => {
     try {
       const data = await api.getTechnicianReport();
       setReport(data);
@@ -20,7 +16,14 @@ export default function Reports() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const run = async () => {
+      await loadReport();
+    };
+    run();
+  }, [loadReport]);
 
   const handleCopyMarkdown = () => {
     if (report?.markdown) {
@@ -121,3 +124,4 @@ export default function Reports() {
     </div>
   );
 }
+

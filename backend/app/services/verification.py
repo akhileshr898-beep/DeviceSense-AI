@@ -57,9 +57,10 @@ class VerificationEngine:
         if current_sample and metric_name in current_sample:
             measured_val = float(current_sample[metric_name] or 0.0)
         else:
-            latest = db_session.query(MetricSample).filter(
-                MetricSample.session_id == rec.diagnostic.session_id if (rec and rec.diagnostic) else None
-            ).order_by(MetricSample.timestamp.desc()).first()
+            query = db_session.query(MetricSample)
+            if rec and rec.diagnostic and rec.diagnostic.session_id:
+                query = query.filter(MetricSample.session_id == rec.diagnostic.session_id)
+            latest = query.order_by(MetricSample.timestamp.desc()).first()
             measured_val = float(getattr(latest, metric_name, baseline_val) or baseline_val) if latest else baseline_val
 
         delta = measured_val - baseline_val
@@ -119,3 +120,4 @@ class VerificationEngine:
         db_session.add(verif)
         db_session.commit()
         return verif
+

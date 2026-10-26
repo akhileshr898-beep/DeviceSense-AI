@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ShieldCheck, AlertCircle, ArrowLeft, CheckCircle, XCircle } from "lucide-react";
+import { ShieldCheck, CheckCircle, XCircle } from "lucide-react";
 
 export default function ActionApprovalModal({ action, isOpen, onClose, onApprove, onReject }) {
   const [rejectReason, setRejectReason] = useState("");
@@ -151,3 +151,4 @@ export default function ActionApprovalModal({ action, isOpen, onClose, onApprove
     </div>
   );
 }
+

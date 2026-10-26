@@ -20,3 +20,4 @@ Write-Host "`n==================================================" -ForegroundCol
 Write-Host " DeviceSense AI Setup Complete!" -ForegroundColor Green
 Write-Host " Run '.\scripts\run_local.ps1' to launch all services." -ForegroundColor Green
 Write-Host "==================================================" -ForegroundColor Green
+

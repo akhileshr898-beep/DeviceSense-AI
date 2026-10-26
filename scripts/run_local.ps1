@@ -24,3 +24,4 @@ Write-Host "  - Flask API:   http://127.0.0.1:5000"
 Write-Host "  - Dashboard:   http://localhost:5173"
 Write-Host "  - Agent:       Active background collector (psutil)"
 Write-Host "`nPress Ctrl+C or close the windows to stop."
+

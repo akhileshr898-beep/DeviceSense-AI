@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import DiagnosticCard from "../components/DiagnosticCard";
-import { AlertCircle, Filter, CheckCircle2 } from "lucide-react";
+import { Filter, CheckCircle2 } from "lucide-react";
 
 export default function Diagnostics({ diagnostics, onSelectAction, onDismiss }) {
   const [filter, setFilter] = useState("all");
@@ -65,3 +65,4 @@ export default function Diagnostics({ diagnostics, onSelectAction, onDismiss }) 
     </div>
   );
 }
+

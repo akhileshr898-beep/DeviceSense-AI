@@ -62,3 +62,4 @@ class TransportClient:
         print(f"[Agent Transport] Batch delivery failed ({reason}). Queued samples: {len(self.buffer)}. Backoff: {self.backoff_sec:.1f}s")
         time.sleep(self.backoff_sec)
         self.backoff_sec = min(self.backoff_sec * 1.5, self.max_backoff_sec)
+

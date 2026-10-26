@@ -90,3 +90,4 @@ flowchart TD
   - Fix assistant with explicit authorization modals.
   - Verification cards detailing measured improvement or regression.
   - Exportable diagnostic audit reports in JSON and Markdown.
+

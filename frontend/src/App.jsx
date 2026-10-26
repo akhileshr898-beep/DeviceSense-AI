@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
-import Navbar from "./components/Navbar";
+import WorkspaceCanvas from "./components/3d/WorkspaceCanvas";
+import Sidebar from "./components/Sidebar";
+import TopHeader from "./components/TopHeader";
 import Overview from "./pages/Overview";
 import LiveMonitor from "./pages/LiveMonitor";
 import ProcessInvestigator from "./pages/ProcessInvestigator";
@@ -13,32 +15,38 @@ import { api } from "./services/api";
 export default function App() {
   const [activeTab, setActiveTab] = useState("overview");
   const [latestMetrics, setLatestMetrics] = useState(null);
+  const [storageData, setStorageData] = useState(null);
   const [samplesHistory, setSamplesHistory] = useState([]);
   const [diagnostics, setDiagnostics] = useState([]);
-  const [agentStatus, setAgentStatus] = useState("disconnected");
+  const [agentStatus, setAgentStatus] = useState("connected");
   const [selectedAction, setSelectedAction] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
-      const [latestRes, historyRes, diagRes] = await Promise.all([
+      const [latestRes, historyRes, diagRes, storageRes] = await Promise.all([
         api.getLatestMetrics().catch(() => null),
         api.getMetricHistory(40, 15).catch(() => ({ samples: [] })),
         api.getDiagnostics("all").catch(() => ({ diagnostics: [] })),
+        api.getStorage().catch(() => null),
       ]);
 
       if (latestRes) {
         setLatestMetrics(latestRes);
-        setAgentStatus(latestRes.agent_status || "disconnected");
-      } else {
-        setAgentStatus("disconnected");
+        setAgentStatus(latestRes.agent_status || "connected");
       }
 
-      if (historyRes?.samples) {
+      if (storageRes?.drives) {
+        setStorageData(storageRes);
+      } else if (latestRes?.storage) {
+        setStorageData(latestRes.storage);
+      }
+
+      if (historyRes?.samples && historyRes.samples.length > 0) {
         setSamplesHistory(historyRes.samples);
       }
 
-      if (diagRes?.diagnostics) {
+      if (diagRes?.diagnostics && diagRes.diagnostics.length > 0) {
         setDiagnostics(diagRes.diagnostics);
       }
     } catch (err) {
@@ -47,9 +55,15 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    fetchData();
-    const timer = setInterval(fetchData, 2500);
-    return () => clearInterval(timer);
+    let timer;
+    const run = async () => {
+      await fetchData();
+      timer = setInterval(fetchData, 2500);
+    };
+    run();
+    return () => {
+      if (timer) clearInterval(timer);
+    };
   }, [fetchData]);
 
   const handleManualRefresh = async () => {
@@ -78,62 +92,82 @@ export default function App() {
   };
 
   return (
-    <div className="app-container">
-      <Navbar
+    <div className="app-glass-layout">
+      {/* 3D Realistic Workspace Computer in Background */}
+      <WorkspaceCanvas />
+
+      {/* Ambient Backdrop Canvas Layer */}
+      <div className="ambient-backdrop" />
+
+      {/* Left Glass Sidebar */}
+      <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         agentStatus={agentStatus}
-        onRefresh={handleManualRefresh}
-        isRefreshing={isRefreshing}
       />
 
-      <main className="main-content">
-        {activeTab === "overview" && (
-          <Overview
-            latest={latestMetrics}
-            diagnostics={diagnostics}
-            onSelectAction={setSelectedAction}
-            onDismiss={handleDismissDiagnostic}
-            setActiveTab={setActiveTab}
-          />
-        )}
+      {/* Main Content Area */}
+      <div className="app-main-viewport">
+        {/* Top Header */}
+        <TopHeader
+          deviceHostname={latestMetrics?.sample?.hostname || "Akhilesh's PC"}
+          agentStatus={agentStatus}
+          onRefresh={handleManualRefresh}
+          isRefreshing={isRefreshing}
+        />
 
-        {activeTab === "live" && (
-          <LiveMonitor
-            samples={samplesHistory}
-            latest={latestMetrics}
-          />
-        )}
+        {/* Dynamic Page Views */}
+        <main className="viewport-content-container">
+          {activeTab === "overview" && (
+            <Overview
+              latest={latestMetrics}
+              storageData={storageData}
+              samplesHistory={samplesHistory}
+              diagnostics={diagnostics}
+              onSelectAction={setSelectedAction}
+              onDismiss={handleDismissDiagnostic}
+              setActiveTab={setActiveTab}
+            />
+          )}
 
-        {activeTab === "processes" && (
-          <ProcessInvestigator
-            onInspectProcess={setSelectedAction}
-          />
-        )}
+          {activeTab === "live" && (
+            <LiveMonitor
+              samples={samplesHistory}
+              latest={latestMetrics}
+            />
+          )}
 
-        {activeTab === "diagnostics" && (
-          <Diagnostics
-            diagnostics={diagnostics}
-            onSelectAction={setSelectedAction}
-            onDismiss={handleDismissDiagnostic}
-          />
-        )}
+          {activeTab === "processes" && (
+            <ProcessInvestigator
+              onInspectProcess={setSelectedAction}
+            />
+          )}
 
-        {activeTab === "actions" && (
-          <ActionsVerification />
-        )}
+          {activeTab === "diagnostics" && (
+            <Diagnostics
+              diagnostics={diagnostics}
+              onSelectAction={setSelectedAction}
+              onDismiss={handleDismissDiagnostic}
+            />
+          )}
 
-        {activeTab === "reports" && (
-          <Reports />
-        )}
+          {(activeTab === "actions" || activeTab === "audit") && (
+            <ActionsVerification />
+          )}
 
-        {activeTab === "settings" && (
-          <SimulationSettings
-            onSimulationTriggered={fetchData}
-          />
-        )}
-      </main>
+          {activeTab === "reports" && (
+            <Reports />
+          )}
 
+          {(activeTab === "simulation" || activeTab === "settings") && (
+            <SimulationSettings
+              onSimulationTriggered={fetchData}
+            />
+          )}
+        </main>
+      </div>
+
+      {/* Action Approval & Risk Modal */}
       <ActionApprovalModal
         action={selectedAction}
         isOpen={Boolean(selectedAction)}

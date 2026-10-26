@@ -175,3 +175,4 @@ Export comprehensive diagnostic reports in both structured JSON and copy-ready M
 ## 10. License
 
 MIT License. Designed for privacy-conscious, local-first Windows diagnostics.
+

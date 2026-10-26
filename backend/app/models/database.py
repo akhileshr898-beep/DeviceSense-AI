@@ -117,7 +117,8 @@ class MetricSample(Base):
             "disk_write_bytes_sec": round(self.disk_write_bytes_sec, 2),
             "disk_free_bytes": self.disk_free_bytes,
             "disk_total_bytes": self.disk_total_bytes,
-            "disk_percent": round(self.disk_percent, 2),
+            "disk_used_bytes": max(0.0, self.disk_total_bytes - self.disk_free_bytes) if self.disk_total_bytes else 0.0,
+            "disk_percent": round(((max(0.0, self.disk_total_bytes - self.disk_free_bytes) / self.disk_total_bytes) * 100.0), 2) if self.disk_total_bytes > 0 else round(self.disk_percent, 2),
             "net_bytes_sent_sec": round(self.net_bytes_sent_sec, 2),
             "net_bytes_recv_sec": round(self.net_bytes_recv_sec, 2),
             "net_latency_ms": round(self.net_latency_ms, 2),
@@ -266,3 +267,4 @@ class Verification(Base):
             "evidence": ev,
             "measured_at": self.measured_at.isoformat() if self.measured_at else None,
         }
+

@@ -1,10 +1,9 @@
 import React from "react";
-import { CheckCircle2, AlertCircle, HelpCircle, ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
+import { HelpCircle, ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
 
 export default function VerificationCard({ verification }) {
   const isImproved = verification.outcome === "improved";
   const isWorsened = verification.outcome === "worsened";
-  const isUnchanged = verification.outcome === "unchanged";
 
   const outcomeBadge = {
     improved: { label: "IMPROVED", class: "badge-success", icon: ArrowDownRight },
@@ -79,3 +78,4 @@ export default function VerificationCard({ verification }) {
     </div>
   );
 }
+

@@ -55,3 +55,4 @@ class FeatureExtractor:
             latency,
             proc_count
         ], dtype=np.float32)
+

@@ -92,3 +92,4 @@ def test_reject_action(client):
     rej_data = rej_res.get_json()
     assert rej_data["action_event"]["status"] == "rejected"
     assert "compilation" in rej_data["action_event"]["rejection_reason"]
+

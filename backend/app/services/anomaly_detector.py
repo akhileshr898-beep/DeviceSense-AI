@@ -127,3 +127,4 @@ class AnomalyDetector:
 
 # Singleton instance
 anomaly_detector = AnomalyDetector()
+

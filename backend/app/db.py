@@ -11,7 +11,21 @@ engine = create_engine(
 SessionLocal = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine))
 
 
-def init_db():
+def init_db(uri=None):
+    global engine, SessionLocal
+    if not uri:
+        try:
+            from flask import current_app
+            if current_app and current_app.config.get("SQLALCHEMY_DATABASE_URI"):
+                uri = current_app.config.get("SQLALCHEMY_DATABASE_URI")
+        except Exception:
+            pass
+    if uri and uri != str(engine.url):
+        engine = create_engine(
+            uri,
+            connect_args={"check_same_thread": False} if "sqlite" in uri else {}
+        )
+        SessionLocal.configure(bind=engine)
     Base.metadata.create_all(bind=engine)
 
 
@@ -21,3 +35,4 @@ def get_db():
         return db
     finally:
         pass
+

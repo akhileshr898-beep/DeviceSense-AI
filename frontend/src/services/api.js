@@ -29,6 +29,7 @@ async function request(endpoint, options = {}) {
 
 export const api = {
   checkHealth: () => request("/health"),
+  getStorage: () => request("/storage"),
   getLatestMetrics: () => request("/metrics/latest"),
   getMetricHistory: (limit = 60, minutes = 15) =>
     request(`/metrics/history?limit=${limit}&minutes=${minutes}`),
@@ -51,6 +52,11 @@ export const api = {
     request(`/actions/${actionId}/verification`),
   getActionHistory: () => request("/actions/history"),
   getActionCatalog: () => request("/actions/catalog"),
+  getSecurityStatus: () => request("/security/status"),
+  correctAllThreats: () =>
+    request("/actions/correct-all", {
+      method: "POST",
+    }),
   getTechnicianReport: () => request("/reports"),
   triggerSimulation: (scenario = "cpu_overload", count = 3) =>
     request("/simulate", {
@@ -58,3 +64,4 @@ export const api = {
       body: JSON.stringify({ scenario, count }),
     }),
 };
+

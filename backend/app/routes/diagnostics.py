@@ -98,8 +98,8 @@ def generate_technician_report():
             "",
             "## Current Health Status",
             f"- CPU: {report['system_state']['cpu_percent']}%" if report['system_state'] else "- CPU: N/A",
-            f"- Memory: {report['system_state']['memory_percent']}% ({report['system_state']['memory_available_bytes'] / (1024**3):.1f} GB free)" if report['system_state'] else "- Memory: N/A",
-            f"- Disk: {report['system_state']['disk_percent']}% ({report['system_state']['disk_free_bytes'] / (1024**3):.1f} GB free)" if report['system_state'] else "- Disk: N/A",
+            f"- Memory: {report['system_state']['memory_percent']}% ({(report['system_state'].get('memory_available_bytes') or 0.0) / (1024**3):.1f} GB free)" if report['system_state'] else "- Memory: N/A",
+            f"- Disk: {report['system_state']['disk_percent']}% ({(report['system_state'].get('disk_free_bytes') or 0.0) / (1024**3):.1f} GB free)" if report['system_state'] else "- Disk: N/A",
             f"- Network Latency: {report['system_state']['net_latency_ms']} ms" if report['system_state'] else "- Latency: N/A",
             "",
             "## Diagnostic Findings & Evidence",
@@ -108,11 +108,12 @@ def generate_technician_report():
             md_lines.append("No active or historical diagnostic issues identified.")
         else:
             for d in diagnostics:
+                d_dict = d.to_dict()
                 md_lines.append(f"### [{d.severity.upper()}] {d.summary} ({d.status})")
                 md_lines.append(f"- Category: `{d.category}`")
-                for ev in (d.evidence_json and eval(d.evidence_json) or []):
+                for ev in d_dict.get("evidence", []):
                     md_lines.append(f"  * Evidence: {ev}")
-                for hyp in (d.hypotheses_json and eval(d.hypotheses_json) or []):
+                for hyp in d_dict.get("hypotheses", []):
                     md_lines.append(f"  * Hypothesis: {hyp.get('cause')} (Confidence: {hyp.get('confidence', 0)*100:.0f}%)")
                 md_lines.append("")
 
@@ -120,3 +121,4 @@ def generate_technician_report():
         return jsonify(report)
     finally:
         db.close()
+

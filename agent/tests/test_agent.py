@@ -49,3 +49,4 @@ def test_transport_client_buffer_on_outage():
     success = client.flush({"id": "test"}, "sess_1")
     assert success is False
     assert len(client.buffer) == 1
+

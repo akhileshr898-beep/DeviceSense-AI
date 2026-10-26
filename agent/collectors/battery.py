@@ -22,3 +22,4 @@ def collect_battery():
             "battery_percent": None,
             "battery_plugged": None,
         }
+

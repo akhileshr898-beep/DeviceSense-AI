@@ -57,3 +57,4 @@ class Config:
         "net_packet_loss_max_pct": 5.0,
         "battery_low_percent": 20.0
     }
+

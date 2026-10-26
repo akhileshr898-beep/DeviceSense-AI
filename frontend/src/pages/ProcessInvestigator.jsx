@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Search, ArrowUpDown, Eye, ShieldAlert, Cpu } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { Search, Eye } from "lucide-react";
 import { api } from "../services/api";
 
 export default function ProcessInvestigator({ onInspectProcess }) {
@@ -8,7 +8,7 @@ export default function ProcessInvestigator({ onInspectProcess }) {
   const [sortBy, setSortBy] = useState("cpu_percent");
   const [loading, setLoading] = useState(true);
 
-  const loadProcesses = async () => {
+  const loadProcesses = useCallback(async () => {
     try {
       const data = await api.getProcesses(sortBy);
       setProcesses(data.processes || []);
@@ -17,13 +17,19 @@ export default function ProcessInvestigator({ onInspectProcess }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sortBy]);
 
   useEffect(() => {
-    loadProcesses();
-    const interval = setInterval(loadProcesses, 5000);
-    return () => clearInterval(interval);
-  }, [sortBy]);
+    let interval;
+    const run = async () => {
+      await loadProcesses();
+      interval = setInterval(loadProcesses, 5000);
+    };
+    run();
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [loadProcesses]);
 
   const filtered = processes.filter(
     (p) =>
@@ -166,3 +172,4 @@ export default function ProcessInvestigator({ onInspectProcess }) {
     </div>
   );
 }
+

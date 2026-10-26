@@ -8,26 +8,28 @@ _cached_net_probe = {"net_latency_ms": 25.0, "net_packet_loss_pct": 0.0}
 _last_probe_time = 0.0
 
 
-def check_latency(target_host="8.8.8.8", target_port=53, timeout=1.0):
+def check_latency(targets=(("1.1.1.1", 443), ("8.8.8.8", 443), ("8.8.8.8", 53)), timeout=1.2):
     """
     Measures round-trip TCP connection latency in milliseconds.
     Safe, non-privileged alternative to raw ICMP sockets.
+    Tries resilient fallback targets across standard ports.
     """
-    start = time.perf_counter()
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(timeout)
-    try:
-        sock.connect((target_host, target_port))
-        latency = (time.perf_counter() - start) * 1000.0
-        sock.close()
-        return latency, 0.0
-    except (socket.timeout, socket.error):
-        return 999.0, 100.0
-    finally:
+    for host, port in targets:
+        start = time.perf_counter()
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(timeout)
         try:
-            sock.close()
-        except Exception:
-            pass
+            sock.connect((host, port))
+            latency = (time.perf_counter() - start) * 1000.0
+            return round(latency, 1), 0.0
+        except (socket.timeout, socket.error):
+            continue
+        finally:
+            try:
+                sock.close()
+            except Exception:
+                pass
+    return 999.0, 100.0
 
 
 def collect_network():
@@ -67,3 +69,4 @@ def collect_network():
         "net_bytes_recv_sec": recv_rate,
         **_cached_net_probe,
     }
+

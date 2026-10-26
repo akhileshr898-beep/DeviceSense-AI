@@ -6,6 +6,7 @@ from ..models.database import Device, MonitoringSession, MetricSample, Diagnosti
 from ..security.auth import require_agent_token
 from ..services.anomaly_detector import anomaly_detector
 from ..services.diagnostic_engine import diagnostic_engine
+from ..services.storage_service import get_system_storage
 
 metrics_bp = Blueprint("metrics", __name__, url_prefix="/api/v1")
 
@@ -92,7 +93,7 @@ def receive_metric_batch():
                 disk_write_bytes_sec=float(sample.get("disk_write_bytes_sec", 0.0)),
                 disk_free_bytes=float(sample.get("disk_free_bytes", 0.0)),
                 disk_total_bytes=float(sample.get("disk_total_bytes", 0.0)),
-                disk_percent=float(sample.get("disk_percent", 0.0)),
+                disk_percent=round(((float(sample.get("disk_total_bytes", 0.0)) - float(sample.get("disk_free_bytes", 0.0))) / float(sample.get("disk_total_bytes", 1.0))) * 100.0, 2) if float(sample.get("disk_total_bytes", 0.0)) > 0 else float(sample.get("disk_percent", 0.0)),
                 net_bytes_sent_sec=float(sample.get("net_bytes_sent_sec", 0.0)),
                 net_bytes_recv_sec=float(sample.get("net_bytes_recv_sec", 0.0)),
                 net_latency_ms=float(sample.get("net_latency_ms", 0.0)),
@@ -128,19 +129,37 @@ def receive_metric_batch():
         db.close()
 
 
+@metrics_bp.route("/storage", methods=["GET"])
+def get_system_storage_route():
+    """
+    Returns actual storage capacity and usage for all mounted disks from the OS.
+    Calculates used storage as (total storage - available storage).
+    Calculates storage percentage as ((used storage / total storage) * 100).
+    """
+    data = get_system_storage()
+    return jsonify({
+        "status": "success" if data.get("is_available") else "unavailable",
+        **data,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+
+
 @metrics_bp.route("/metrics/latest", methods=["GET"])
 def get_latest_metrics():
     """
     Returns the most recent single metric sample and active diagnostics count.
+    Enriched with real-time OS storage data.
     """
     db = SessionLocal()
     try:
         sample = db.query(MetricSample).order_by(MetricSample.timestamp.desc()).first()
         active_diags_count = db.query(Diagnostic).filter(Diagnostic.status == "active").count()
+        storage_data = get_system_storage()
 
         if not sample:
             return jsonify({
                 "sample": None,
+                "storage": storage_data,
                 "active_diagnostics_count": active_diags_count,
                 "agent_status": "disconnected"
             })
@@ -150,8 +169,12 @@ def get_latest_metrics():
         sample_time = sample.timestamp.replace(tzinfo=timezone.utc) if sample.timestamp.tzinfo is None else sample.timestamp
         is_fresh = (now - sample_time).total_seconds() < 15
 
+        sample_dict = sample.to_dict()
+        sample_dict["storage"] = storage_data
+
         return jsonify({
-            "sample": sample.to_dict(),
+            "sample": sample_dict,
+            "storage": storage_data,
             "active_diagnostics_count": active_diags_count,
             "agent_status": "connected" if is_fresh else "stale",
             "timestamp": now.isoformat()
@@ -412,3 +435,4 @@ def simulate_diagnostic_scenario():
         return jsonify({"error": "Simulation error", "details": str(e)}), 500
     finally:
         db.close()
+

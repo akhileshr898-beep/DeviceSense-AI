@@ -71,3 +71,4 @@ Every approved action undergoes formal before-and-after verification:
    - `worsened`: Metric delta worsened.
    - `inconclusive`: Fluctuations in unrelated background tasks rendered measurement ambiguous.
 5. **Transparency Rule**: Short-term improvements are explicitly distinguished from permanent fixes in the generated audit record.
+

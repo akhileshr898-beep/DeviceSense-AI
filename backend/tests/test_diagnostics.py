@@ -102,3 +102,4 @@ def test_no_duplicate_active_alerts_every_two_seconds(client):
     diags = [d for d in diag_res.get_json()["diagnostics"] if d["session_id"] == "dedup_test"]
     # Only 1 unique active sustained_cpu finding should exist, not 5 duplicates
     assert len(diags) == 1
+

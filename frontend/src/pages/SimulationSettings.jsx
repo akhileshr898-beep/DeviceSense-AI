@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Play, RotateCcw, Sliders, Shield, Database, Cpu, Zap, HardDrive, Wifi } from "lucide-react";
+import { Play, RotateCcw, Shield, Database, Cpu, Zap, HardDrive, Wifi } from "lucide-react";
 import { api } from "../services/api";
 
 export default function SimulationSettings({ onSimulationTriggered }) {
@@ -161,3 +161,4 @@ export default function SimulationSettings({ onSimulationTriggered }) {
     </div>
   );
 }
+

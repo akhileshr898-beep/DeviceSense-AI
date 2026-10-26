@@ -1,4 +1,9 @@
 import sys
+from pathlib import Path
+
+# Ensure backend directory is in sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 from app import create_app
 from app.config import Config
 
@@ -19,3 +24,4 @@ if __name__ == "__main__":
         debug=Config.DEBUG,
         threaded=True
     )
+

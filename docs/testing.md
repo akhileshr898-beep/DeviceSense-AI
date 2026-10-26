@@ -63,3 +63,4 @@ DeviceSense AI includes built-in scenario generators designed for repeatable dem
 5. **Brief CPU Spike**:
    - Injects a single $95\%$ CPU sample surrounded by normal samples.
    - Verifies that no persistent critical alert is triggered.
+

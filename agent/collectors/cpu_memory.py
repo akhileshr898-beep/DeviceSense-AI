@@ -65,3 +65,4 @@ def collect_top_processes(limit=10):
     # Sort primarily by CPU and memory
     processes.sort(key=lambda p: (p["cpu_percent"], p["memory_percent"]), reverse=True)
     return processes[:limit]
+

@@ -1,9 +1,14 @@
 import argparse
 from datetime import datetime, timezone
 import os
+from pathlib import Path
 import signal
 import sys
 import time
+
+# Ensure agent directory is in sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 from config import AgentConfig
 from collectors.cpu_memory import prime_cpu, collect_cpu_memory, collect_top_processes
 from collectors.disk import collect_disk
@@ -101,3 +106,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     run_agent(interval=args.interval, single_run=args.single_run)
+

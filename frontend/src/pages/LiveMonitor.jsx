@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import LiveCharts from "../components/LiveCharts";
-import { Cpu, HardDrive, Wifi, Activity, BrainCircuit } from "lucide-react";
+import { BrainCircuit } from "lucide-react";
 
 export default function LiveMonitor({ samples, latest }) {
   const [windowMinutes, setWindowMinutes] = useState(15);
@@ -103,3 +103,4 @@ export default function LiveMonitor({ samples, latest }) {
     </div>
   );
 }
+

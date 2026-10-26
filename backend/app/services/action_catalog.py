@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import shutil
 import ctypes
@@ -32,6 +33,15 @@ class ActionCatalog:
         "trim_process_working_set",
     }
 
+    # Strict whitelist of allowed Windows Settings URIs (prevents arbitrary protocol handlers)
+    ALLOWED_SETTINGS_URIS = {
+        "ms-settings:startupapps",
+        "ms-settings:storagesense",
+        "ms-settings:batterysaver",
+        "ms-settings:privacy",
+        "ms-settings:windowsupdate",
+    }
+
     @classmethod
     def is_allowed(cls, action_type: str) -> bool:
         return action_type in cls.ALLOWED_ACTIONS
@@ -62,22 +72,36 @@ class ActionCatalog:
 
         raise NotImplementedError(f"Handler for {action_type} is not implemented.")
 
-    @staticmethod
-    def _inspect_process(target_resource: str) -> dict:
+    @classmethod
+    def _parse_safe_pid(cls, target_resource: str) -> int | None:
+        """
+        Safely extracts and validates a positive PID integer (1 <= PID <= 65535).
+        Prevents PID spoofing or negative index injection.
+        """
+        if not target_resource:
+            return None
+        match = re.search(r"PID\s*[:\s]?\s*(\d+)", target_resource, re.IGNORECASE)
+        if match:
+            try:
+                pid = int(match.group(1))
+                if 1 <= pid <= 65535:
+                    return pid
+            except (ValueError, OverflowError):
+                pass
+        return None
+
+    @classmethod
+    def _inspect_process(cls, target_resource: str) -> dict:
         """
         Reads safe process runtime details (threads, create time, memory info).
+        Never inspects command-line arguments, environment variables, or memory dump strings.
         """
-        pid = None
-        if target_resource and "PID" in target_resource:
-            try:
-                parts = target_resource.split("PID")[-1].split(":")[0].strip()
-                pid = int(parts)
-            except Exception:
-                pass
+        pid = cls._parse_safe_pid(target_resource)
 
         if pid and psutil.pid_exists(pid):
             try:
                 p = psutil.Process(pid)
+                # Intentionally exclude cmdline and environ to prevent secret disclosure
                 info = p.as_dict(attrs=["pid", "name", "status", "num_threads", "cpu_percent", "memory_info", "create_time"])
                 info["memory_rss_mb"] = round(info["memory_info"].rss / (1024 * 1024), 2)
                 return {
@@ -98,19 +122,45 @@ class ActionCatalog:
     @staticmethod
     def _clean_temp_cache() -> dict:
         """
-        Safely clears user %TEMP% directory. Skips files currently open or locked.
+        Safely clears user %TEMP% directory with canonical path checks and symlink guards.
+        Prevents path traversal, junction escaping, and skips files currently in use.
         """
-        temp_dir = os.environ.get("TEMP") or os.environ.get("TMP")
-        if not temp_dir or not os.path.exists(temp_dir):
-            return {"success": False, "message": "TEMP directory not found."}
+        raw_temp = os.environ.get("TEMP") or os.environ.get("TMP")
+        if not raw_temp:
+            return {"success": False, "message": "TEMP directory environment variable not found."}
+
+        temp_dir = os.path.realpath(raw_temp)
+        if not os.path.isdir(temp_dir):
+            return {"success": False, "message": "TEMP directory is not a valid directory."}
 
         deleted_files = 0
         deleted_bytes = 0
         skipped = 0
 
-        for root, dirs, files in os.walk(temp_dir):
+        for root, dirs, files in os.walk(temp_dir, followlinks=False):
+            # Verify directory canonical path remains strictly within temp_dir
+            canonical_root = os.path.realpath(root)
+            if not (canonical_root == temp_dir or canonical_root.startswith(temp_dir + os.sep)):
+                skipped += len(files)
+                continue
+
             for file in files:
                 file_path = os.path.join(root, file)
+
+                # Symlinks and directory junctions: do not traverse into targets
+                if os.path.islink(file_path):
+                    try:
+                        os.unlink(file_path)
+                        deleted_files += 1
+                    except Exception:
+                        skipped += 1
+                    continue
+
+                canonical_file = os.path.realpath(file_path)
+                if not (canonical_file == temp_dir or canonical_file.startswith(temp_dir + os.sep)):
+                    skipped += 1
+                    continue
+
                 try:
                     size = os.path.getsize(file_path)
                     os.remove(file_path)
@@ -130,14 +180,20 @@ class ActionCatalog:
             "message": f"Temporary cache cleaned. Reclaimed {freed_mb} MB across {deleted_files} files ({skipped} active files preserved safely)."
         }
 
-    @staticmethod
-    def _open_settings_uri(uri: str) -> dict:
+    @classmethod
+    def _open_settings_uri(cls, uri: str) -> dict:
         """
-        Opens a standard Windows ms-settings: URI via explorer/start without arbitrary shell execution.
+        Opens a whitelisted Windows ms-settings: URI without arbitrary shell execution.
+        Strictly rejects unverified protocol handlers or shell metacontrol characters.
         """
+        if uri not in cls.ALLOWED_SETTINGS_URIS:
+            raise ValueError(f"Settings URI '{uri}' is not in the permitted whitelist.")
+
         try:
-            # Use fixed Windows start command on ms-settings URI only
-            os.system(f"start {uri}")
+            if hasattr(os, "startfile"):
+                os.startfile(uri)
+            else:
+                subprocess.run(["cmd", "/c", "start", "", uri], shell=False, check=False, timeout=5)
             return {
                 "success": True,
                 "action": "open_settings",
@@ -150,7 +206,7 @@ class ActionCatalog:
     @staticmethod
     def _flush_dns() -> dict:
         """
-        Safely flushes Windows DNS cache using fixed 'ipconfig /flushdns' executable.
+        Safely flushes Windows DNS cache using fixed 'ipconfig /flushdns' executable (no shell=True).
         """
         try:
             res = subprocess.run(
@@ -158,7 +214,8 @@ class ActionCatalog:
                 capture_output=True,
                 text=True,
                 timeout=10,
-                check=False
+                check=False,
+                shell=False
             )
             return {
                 "success": res.returncode == 0,
@@ -169,22 +226,15 @@ class ActionCatalog:
         except Exception as e:
             return {"success": False, "message": f"Failed to flush DNS: {str(e)}"}
 
-    @staticmethod
-    def _trim_process_working_set(target_resource: str) -> dict:
+    @classmethod
+    def _trim_process_working_set(cls, target_resource: str) -> dict:
         """
         Safely requests Windows Memory Manager to trim working set for the given process.
-        Uses native Win32 EmptyWorkingSet API.
+        Uses native Win32 EmptyWorkingSet API without terminating the target application.
         """
-        pid = None
-        if target_resource and "PID" in target_resource:
-            try:
-                parts = target_resource.split("PID")[-1].split(":")[0].strip()
-                pid = int(parts)
-            except Exception:
-                pass
+        pid = cls._parse_safe_pid(target_resource)
 
         if not pid or not psutil.pid_exists(pid):
-            # Fallback to trimming our current process or general memory
             pid = os.getpid()
 
         trimmed = False
