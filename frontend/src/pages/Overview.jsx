@@ -124,8 +124,14 @@ export default function Overview({
     ? ((sample.memory_total_bytes - sample.memory_available_bytes) / 1024 ** 3).toFixed(1)
     : "8.8";
 
-  // Greeting matching template design
-  const [greeting] = useState("Good Morning");
+  // Greeting dynamically matching local time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return "Good Morning";
+    if (hour >= 12 && hour < 17) return "Good Afternoon";
+    return "Good Evening";
+  };
+  const [greeting] = useState(getGreeting);
 
   // Compute System Health Score (0 - 100)
   let healthScore = 100;

@@ -1,7 +1,7 @@
 import pytest
 from backend.app import create_app
 from backend.app.config import Config
-from backend.app.db import init_db
+from backend.app.db import init_db, reset_db
 
 
 class TestConfig(Config):
@@ -17,5 +17,6 @@ def client():
     with app.test_client() as client:
         with app.app_context():
             init_db(TestConfig.SQLALCHEMY_DATABASE_URI)
+            reset_db()
         yield client
 

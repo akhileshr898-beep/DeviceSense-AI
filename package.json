@@ -1,0 +1,11 @@
+{
+  "name": "devicesense-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DeviceSense AI - Intelligent System Telemetry, Diagnostics & Optimization",
+  "scripts": {
+    "build": "npm run --prefix frontend build",
+    "dev": "npm run --prefix frontend dev",
+    "start": "npm run --prefix frontend preview"
+  }
+}

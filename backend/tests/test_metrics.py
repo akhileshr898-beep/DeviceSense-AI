@@ -4,9 +4,7 @@ import tempfile
 from pathlib import Path
 from backend.app import create_app
 from backend.app.config import Config
-from backend.app.db import SessionLocal, init_db
-from backend.app.models.database import Base, Device, MetricSample
-from backend.app.db import engine
+from backend.app.db import SessionLocal, init_db, reset_db
 
 
 class TestConfig(Config):
@@ -21,7 +19,8 @@ def client():
     app = create_app(TestConfig)
     with app.test_client() as client:
         with app.app_context():
-            init_db()
+            init_db(TestConfig.SQLALCHEMY_DATABASE_URI)
+            reset_db()
         yield client
 
 
